@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>쓰레기통 민원 접수</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 2rem;
+      background-color: #f0f2f5;
+    }
+    form {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 10px;
+      max-width: 400px;
+      margin: auto;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin: 1rem 0 0.5rem;
+    }
+    select, button {
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      margin-top: 1.5rem;
+      background-color: #607183;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+  <form id="complaintForm">
+    <h2>민원 접수</h2>
+    
+    <label for="building">건물 이름</label>
+    <select name="building" id="building" required>
+      <option value="">선택하세요</option>
+      <option value="도서관">도서관</option>
+      <option value="사회과학관">사회과학관</option>
+      <option value="사이버관">사이버관</option>
+      <option value="인문과학관">인문과학관</option>
+      <option value="교수학습개발원">교수학습개발원</option>
+    </select>
+
+    <label for="floor">층</label>
+    <select name="floor" id="floor" required>
+      <option value="">건물을 먼저 선택하세요</option>
+    </select>
+
+    <label for="content">민원 내용</label>
+    <select name="content" id="content" required>
+      <option value="">선택하세요</option>
+      <option value="쓰레기 넘침">쓰레기 넘침</option>
+      <option value="벌레">벌레</option>
+      <option value="악취">악취</option>
+      <option value="음식물">음식물</option>
+      <option value="custom">직접입력</option>
+    </select>
+
+    <!-- 실제 전송될 input -->
+    <input type="hidden" name="content" id="finalcontent" />
+
+    <!-- 직접 입력창 -->
+    <input type="text" id="customcontentInput" placeholder="민원 내용을 입력하세요" style="display:none; margin-top:0.5rem; width:100%; padding:0.5rem; border-radius:5px; border:1px solid #ccc;" />
+    
+
+    <button type="submit">제출하기</button>
+  </form>
+
+  <script>
+    // 건물에 따른 층 개수 변화
+    const buildingSelect = document.getElementById("building");
+    const floorSelect = document.getElementById("floor");
+    const floorOptions = {
+      "도서관": 6,
+      "사회과학관": 5,
+      "사이버관": 8,
+      "인문과학관": 6,
+      "교수학습개발원": 6
+    };
+
+    buildingSelect.addEventListener("change", () => {
+      const selectedBuilding = buildingSelect.value;
+      floorSelect.innerHTML = "";
+
+      if (!floorOptions[selectedBuilding]) {
+        floorSelect.innerHTML = '<option value="">건물을 먼저 선택하세요</option>';
+        return;
+      }
+
+      floorSelect.innerHTML = '<option value="">선택하세요</option>';
+
+      const maxFloor = floorOptions[selectedBuilding];
+      for (let i = 1; i <= maxFloor; i++) {
+        const option = document.createElement("option");
+        option.value = `${i}층`;
+        option.textContent = `${i}층`;
+        floorSelect.appendChild(option);
+      }
+    });
+
+
+    // 직접 입력창
+    const contentSelect = document.getElementById("content");
+    const customInput = document.getElementById("customcontentInput");
+    const finalcontent = document.getElementById("finalcontent");
+
+    contentSelect.addEventListener("change", () => {
+        const selected = contentSelect.value;
+
+        if (selected === "custom") {
+            customInput.style.display = "block";
+            customInput.required = true;
+            finalcontent.value = ""; // 초기화
+        } else {
+            customInput.style.display = "none";
+            customInput.required = false;
+            finalcontent.value = selected;
+        }
+     });
+
+  // 직접 입력 내용이 바뀔 때마다 hidden input에 반영
+    customInput.addEventListener("input", () => {
+        finalcontent.value = customInput.value;
+    });
+    
+
+    document.getElementById("complaintForm").addEventListener("submit", function (e) {
+    e.preventDefault(); // 기본 form 제출 막기
+
+    const building = document.getElementById("building").value;
+    const floor = document.getElementById("floor").value.replace("층", ""); // 숫자만
+    const contentSelect = document.getElementById("content").value;
+    const customContent = document.getElementById("customcontentInput").value;
+
+    // 직접입력이면 그 값을, 아니면 선택값을 사용
+    const content = contentSelect === "custom" ? customContent : contentSelect;
+
+    const data = {
+      building: building,
+      floor: parseInt(floor),
+      content: content
+    };
+
+    fetch("http://3.107.139.2/trash/complaints/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    })
+    .then(res => {
+      if (res.ok) {
+        alert("민원이 접수되었습니다.");
+      } else {
+        alert("다시 시도해주세요.");
+      }
+    })
+    .catch(err => {
+      alert("오류 발생: " + err.message);
+    });
+  });
+  
+  </script>
+</body>
+</html>
